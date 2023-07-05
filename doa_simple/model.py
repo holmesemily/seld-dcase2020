@@ -12,6 +12,13 @@ from IPython import embed
 import numpy as np
 import os 
 import random
+import cls_feature_class
+import cls_data_generator
+import parameter
+import time
+import evaluation_metrics, SELD_evaluation_metrics
+params = parameter.get_params(1)
+from collections import deque
 
 # tf.keras.backend.set_image_data_format('channels_first')
 
@@ -57,101 +64,70 @@ split_test = 60
 feat_dir = '../dataset/myfeatures/foa_dev_norm'
 label_dir = '../dataset/myfeatures/foa_dev_label'
 data_dir = '../dataset/myfeatures/sets'
-
-# train_data = np.zeros((240, 3000, 512))
-# train_label = np.zeros((240, 600, 3))
-# test_data = np.zeros((60, 3000, 512))
-# test_label = np.zeros((60, 600, 3))
-
-# test_list = random.sample(os.listdir(feat_dir), k=split_test)
-# train_list = [x for x in os.listdir(feat_dir) if x not in test_list]
-
-# for index, filename in enumerate(train_list):
-#     print(index)
-#     cur_file = os.path.join(feat_dir, filename)
-#     filename = filename + ".csv"
-#     cur_label = os.path.join(label_dir, filename)
-#     a = np.genfromtxt(cur_file, delimiter=',', dtype=float)
-#     b = np.genfromtxt(cur_label, delimiter=',', dtype=float)
-#     train_data[index, :, :] = a
-#     train_label[index, :, :] = b
-
-# train_data = np.reshape(train_data, (240, 3000*512))
-# train_label = np.reshape(train_label, (240, 600*3))
-# np.savetxt(os.path.join(data_dir, "train_data.csv"), train_data, delimiter = ",")  
-# np.savetxt(os.path.join(data_dir, "train_label.csv"), train_label, delimiter = ",")  
-
-# print("saved")
-
-# for index, filename in enumerate(test_list):
-#     print(index)
-#     cur_file = os.path.join(feat_dir, filename)
-#     filename = filename + ".csv"
-#     cur_label = os.path.join(label_dir, filename)
-#     a = np.genfromtxt(cur_file, delimiter=',', dtype=float)
-#     b = np.genfromtxt(cur_label, delimiter=',', dtype=float)
-#     test_data[index, :, :] = a
-#     test_label[index, :, :] = b
-
-# test_data = np.reshape(test_data, (60, 3000*512))
-# test_label = np.reshape(test_label, (60, 600*3))
-# np.savetxt(os.path.join(data_dir, "test_data.csv"), test_data, delimiter = ",")  
-# np.savetxt(os.path.join(data_dir, "test_label.csv"), test_label, delimiter = ",")  
-
-# print("saved")
-
-epochs = 10
-batchsize = 240
-
-print("Loading data...")
-
-# find a way to load progressively
-train_data = np.genfromtxt(os.path.join(data_dir, "train_data.csv"), delimiter=',', dtype=float, max_rows=batchsize)
-train_label = np.genfromtxt(os.path.join(data_dir, "train_label.csv"), delimiter=',', dtype=float, max_rows=batchsize)
-# test_data = np.genfromtxt(os.path.join(data_dir, "test_data.csv"), delimiter=',', dtype=float)
-# test_label= np.genfromtxt(os.path.join(data_dir, "test_label.csv"), delimiter=',', dtype=float)
-
-# train_data = np.reshape(train_data, (batchsize, 3000, 512))
-train_data = np.reshape(train_data, (batchsize, 3000, 128, 4))
-train_label = np.reshape(train_label, (batchsize, 600, 3))
-# test_data = np.reshape(test_data, (60, 3000, 512))
-# test_label = np.reshape(test_label, (60, 600, 3))
+test_splits = [1]
+val_splits = [2]
+train_splits = [[3, 4, 5, 6]]
+batchsize = 70
+filenames_list = os.listdir(feat_dir)
+nb_total_batches = 4
+feature_seq_len = 600
+feature_batch_seq_len = batchsize*feature_seq_len
+nb_mel_bins = 128
+nb_ch = 4
 
 
+def split_in_seqs(data, seq_len):
+        if len(data.shape) == 1:
+            if data.shape[0] % seq_len:
+                data = data[:-(data.shape[0] % seq_len), :]
+            data = data.reshape((data.shape[0] // seq_len, seq_len, 1))
+        elif len(data.shape) == 2:
+            if data.shape[0] % seq_len:
+                data = data[:-(data.shape[0] % seq_len), :]
+            data = data.reshape((data.shape[0] // seq_len, seq_len, data.shape[1]))
+        elif len(data.shape) == 3:
+            if data.shape[0] % seq_len:
+                data = data[:-(data.shape[0] % seq_len), :, :]
+            data = data.reshape((data.shape[0] // seq_len, seq_len, data.shape[1], data.shape[2]))
+        else:
+            print('ERROR: Unknown data dimensions: {}'.format(data.shape))
+            exit()
+        return data
 
-print("Start training...")
-# tf.compat.v1.disable_eager_execution()
-model.fit(train_data, train_label, epochs=epochs)
-# def make_iterator(dataset):
-#     iterator = iter(dataset)
-#     next_val = iterator.get_next()
+def generate():
+        while 1:
+                random.shuffle(filenames_list)
 
-#     with tf.compat.v1.keras.backend.get_session().as_default() as sess:
-#         while True:
-#             *inputs, labels = sess.run(next_val)
-#             yield inputs, labels
+                # Ideally this should have been outside the while loop. But while generating the test data we want the data
+                # to be the same exactly for all epoch's hence we keep it here.
+                circ_buf_feat = deque()
+                circ_buf_label = deque()
 
-# def configure_for_performance(ds):
-#   ds = ds.cache()
-#   ds = ds.shuffle(buffer_size=1000)
-#   ds = ds.batch(batchsize)
-#   ds = ds.prefetch(buffer_size=tf.data.AUTOTUNE)
-#   return ds
+                file_cnt = 0
+                for i in range(nb_total_batches):
+                        # load feat and label to circular buffer. Always maintain atleast one batch worth feat and label in the
+                        # circular buffer. If not keep refilling it.
+                        while len(circ_buf_feat) < feature_batch_seq_len:
+                                temp_feat = np.load(os.path.join(feat_dir, filenames_list[file_cnt]))
+                                for row_cnt, row in enumerate(temp_feat):
+                                        circ_buf_feat.append(row)
+                                file_cnt = file_cnt + 1
+                        
+                        # Read one batch size from the circular buffer
+                        feat = np.zeros((feature_batch_seq_len, nb_mel_bins * nb_ch))
+                        for j in range(feature_batch_seq_len):
+                                feat[j, :] = circ_buf_feat.popleft()
+                        feat = np.reshape(feat, (feature_batch_seq_len, nb_mel_bins, nb_ch))
 
-# batch_train = tf.data.experimental.CsvDataset([os.path.join(data_dir, "train_data.csv"), os.path.join(data_dir, "train_label.csv")], 
-#                                               [tf.float32, ])
-# batch_valid = tf.data.experimental.CsvDataset([os.path.join(data_dir, "test_data.csv"), os.path.join(data_dir, "test_label.csv")], tf.float32)
+                        # Split to sequences
+                        feat = split_in_seqs(feat, feature_seq_len)
+                        feat = np.transpose(feat, (0, 3, 1, 2))
 
-# print(batch_train)
-# print(batch_train.shape)
+                        yield feat, label
 
-# batch_train=configure_for_performance(batch_train)
-# batch_valid=configure_for_performance(batch_valid)
 
-# itr_train = make_iterator(batch_train)
-# itr_valid = make_iterator(batch_valid)
-
-# model.fit(
-#     x=batch_train, validation_data=batch_valid, validation_steps=batchsize,
-#     epochs=epochs, steps_per_epoch=2, verbose=2)
+for split_cnt, split in enumerate(test_splits):
+        print('\n\n---------------------------------------------------------------------------------------------------')
+        print('------------------------------------      SPLIT {}   -----------------------------------------------'.format(split))
+        print('---------------------------------------------------------------------------------------------------')
 

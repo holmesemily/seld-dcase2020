@@ -31,6 +31,8 @@ def get_model(data_in, data_out, dropout_rate, nb_cnn2d_filt, f_pool_size, t_poo
         spec_cnn = Dropout(dropout_rate)(spec_cnn)
     spec_cnn = Permute((2, 1, 3))(spec_cnn)
 
+    # spec_cnn = Reshape((data_out[0][-2], -1))(spec_cnn)
+
     # RNN
     spec_rnn = Reshape((data_out[0][-2], -1))(spec_cnn)
     for nb_rnn_filt in rnn_size:
