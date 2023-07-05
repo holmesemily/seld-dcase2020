@@ -54,7 +54,6 @@ model.compile(optimizer=tf.keras.optimizers.Adam(), loss='mse')
 
 # train and test datasets
 split_test = 60
-epoch = 5
 feat_dir = '../dataset/myfeatures/foa_dev_norm'
 label_dir = '../dataset/myfeatures/foa_dev_label'
 data_dir = '../dataset/myfeatures/sets'
@@ -101,9 +100,12 @@ data_dir = '../dataset/myfeatures/sets'
 
 # print("saved")
 
-batchsize = 32
+epochs = 10
+batchsize = 240
 
 print("Loading data...")
+
+# find a way to load progressively
 train_data = np.genfromtxt(os.path.join(data_dir, "train_data.csv"), delimiter=',', dtype=float, max_rows=batchsize)
 train_label = np.genfromtxt(os.path.join(data_dir, "train_label.csv"), delimiter=',', dtype=float, max_rows=batchsize)
 # test_data = np.genfromtxt(os.path.join(data_dir, "test_data.csv"), delimiter=',', dtype=float)
@@ -115,5 +117,41 @@ train_label = np.reshape(train_label, (batchsize, 600, 3))
 # test_data = np.reshape(test_data, (60, 3000, 512))
 # test_label = np.reshape(test_label, (60, 600, 3))
 
+
+
 print("Start training...")
-model.fit(train_data, train_label, epochs=epoch)
+# tf.compat.v1.disable_eager_execution()
+model.fit(train_data, train_label, epochs=epochs)
+# def make_iterator(dataset):
+#     iterator = iter(dataset)
+#     next_val = iterator.get_next()
+
+#     with tf.compat.v1.keras.backend.get_session().as_default() as sess:
+#         while True:
+#             *inputs, labels = sess.run(next_val)
+#             yield inputs, labels
+
+# def configure_for_performance(ds):
+#   ds = ds.cache()
+#   ds = ds.shuffle(buffer_size=1000)
+#   ds = ds.batch(batchsize)
+#   ds = ds.prefetch(buffer_size=tf.data.AUTOTUNE)
+#   return ds
+
+# batch_train = tf.data.experimental.CsvDataset([os.path.join(data_dir, "train_data.csv"), os.path.join(data_dir, "train_label.csv")], 
+#                                               [tf.float32, ])
+# batch_valid = tf.data.experimental.CsvDataset([os.path.join(data_dir, "test_data.csv"), os.path.join(data_dir, "test_label.csv")], tf.float32)
+
+# print(batch_train)
+# print(batch_train.shape)
+
+# batch_train=configure_for_performance(batch_train)
+# batch_valid=configure_for_performance(batch_valid)
+
+# itr_train = make_iterator(batch_train)
+# itr_valid = make_iterator(batch_valid)
+
+# model.fit(
+#     x=batch_train, validation_data=batch_valid, validation_steps=batchsize,
+#     epochs=epochs, steps_per_epoch=2, verbose=2)
+
