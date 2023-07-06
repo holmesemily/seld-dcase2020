@@ -7,11 +7,11 @@ for filename in os.listdir(dir):
     print(i)
     i += 1
     cur_file = os.path.join(dir, filename)
-    f = np.genfromtxt(cur_file, delimiter=',', dtype=float)
-    if f.shape != (3000, 512): 
-        print("reshape")
-        f = np.delete(f, 0, 1)
-        f = np.delete(f, 0, 1)
-        f = np.delete(f, 0, 0)
-        np.savetxt(cur_file, f, delimiter = ",")  
+    f = np.genfromtxt(cur_file, delimiter=',', skip_header=0, dtype=float)
+    print(f.shape)
+    # if f.shape != (300, 256): 
+    f = np.delete(f, 0, 1)
+    f = np.delete(f, 0, 0)
+    print(f.shape)
+    np.savetxt(cur_file, f, delimiter = ",")  
 

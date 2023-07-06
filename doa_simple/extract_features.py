@@ -11,7 +11,7 @@ import joblib
 import csv
 
 # constants
-directory = '../dataset/foa_dev_smol'
+directory = '../dataset/foa_dev'
 out_directory = '../dataset/myfeatures/foa_dev'
 desc_directory = '../dataset/metadata_dev'
 out_directory_label = '../dataset/myfeatures/foa_dev_label'
@@ -23,9 +23,9 @@ hop_len = 0.02
 # nfft = (2**(int(hop_len*fs)-1)).bit_length()
 nfft = 2048
 win_len = int(hop_len*fs)*2
-nb_mel_bins = 64*2
-max_frames = 3000
-max_label_frames = 600
+nb_mel_bins = 64
+max_frames = 300
+max_label_frames = 60
 
 def preprocess_features():
 # Setting up folders and filenames
@@ -41,7 +41,8 @@ def preprocess_features():
     for file_cnt, file_name in enumerate(os.listdir(feat_dir)):
         print('{}: {}'.format(file_cnt, file_name))
         # feat_file = np.load(os.path.join(feat_dir, file_name))
-        feat_file = pd.read_csv(os.path.join(feat_dir, file_name), encoding = "ISO-8859-1")
+        feat_file = pd.read_csv(os.path.join(feat_dir, file_name), header=None, encoding = "ISO-8859-1")
+        print(feat_file.shape)
         spec_scaler.partial_fit(feat_file)
         del feat_file
     joblib.dump(
@@ -54,11 +55,11 @@ def preprocess_features():
     for file_cnt, file_name in enumerate(os.listdir(feat_dir)):
         print('{}: {}'.format(file_cnt, file_name))
         # feat_file = np.load(os.path.join(feat_dir, file_name))
-        feat_file = pd.read_csv(os.path.join(feat_dir, file_name), encoding = "ISO-8859-1")
+        feat_file = pd.read_csv(os.path.join(feat_dir, file_name), header=None, encoding = "ISO-8859-1")
         feat_file = spec_scaler.transform(feat_file)
         # np.save(
-        #     os.path.join(feat_dir_norm, file_name),
-        #     feat_file
+            # os.path.join(feat_dir_norm, file_name),
+            # feat_file
         # )
         feat_file_df = pd.DataFrame(feat_file)
         feat_file_df.to_csv(os.path.join(feat_dir_norm, file_name), encoding = "ISO-8859-1")
@@ -80,12 +81,16 @@ def extract_labels():
             slabel_mat[desc_l[index, 0], 2] = desc_l[index, 3]
             # print(slabel_mat[desc_l[index, 0], :])
         print(slabel_mat)
-        np.savetxt(os.path.join(out_directory_label, filename), slabel_mat, delimiter = ",")      
+        np.savetxt(os.path.join(out_directory_label, filename), slabel_mat, delimiter = ",", fmt=int)      
         # slabel_mat_df = pd.DataFrame(slabel_mat)
         # slabel_mat_df.to_csv(os.path.join(out_directory_label, filename))
 
+def int_features():
+    feat_dir = '../dataset/myfeatures/foa_dev'
+    for file_cnt, file_name in enumerate(os.listdir(feat_dir)):
+        print("hi")
 
-# print("Generating spectrograms...")
+# # print("Generating spectrograms...")
 # for filename in os.listdir(directory):
 #     print(filename)
 #     cur_file = os.path.join(directory, filename)
@@ -103,11 +108,11 @@ def extract_labels():
 #     # spectrogram for each channel 
 #     nb_ch = mulchannel.shape[1]
 #     nb_bins = nfft//2
-#     spectra = np.zeros((3000, nb_bins + 1, nb_ch), dtype=complex)
+#     spectra = np.zeros((300, nb_bins + 1, nb_ch), dtype=complex)
 #     for ch_cnt in range(nb_ch):
 #         stft_ch = librosa.core.stft(np.asfortranarray(mulchannel[:, ch_cnt]), n_fft=nfft, hop_length=int(hop_len*24000),
 #                                     win_length=win_len, window='hann')
-#         spectra[:, :, ch_cnt] = stft_ch[:, :3000].T
+#         spectra[:, :, ch_cnt] = stft_ch[:, :300].T
 
 #     # mel 
 #     mel_wts = librosa.filters.mel(sr=fs, n_fft=nfft, n_mels=nb_mel_bins).T
@@ -125,7 +130,7 @@ def extract_labels():
 #     # print(mel_feat[1][0], mel_feat[1][1], mel_feat[1][2])
 
 #     df_feat = pd.DataFrame(mel_feat)
-#     filename_clean = os.path.splitext(filename)[0]
+#     filename_clean = os.path.splitext(filename)[0] + ".csv"
 #     df_feat.to_csv(os.path.join(out_directory, filename_clean))
 
 preprocess_features()

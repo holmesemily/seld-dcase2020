@@ -88,14 +88,9 @@ x_train = np.reshape(x_train, (240,300,64,4))
 x_val = np.reshape(x_val, (60,300,64,4))
 
 data_train = tf.data.Dataset.from_tensor_slices((x_train,y_train))
-data_train = data_train.shuffle(buffer_size=1024).batch(40, drop_remainder=True).repeat()
+data_train = data_train.shuffle(buffer_size=1024).batch(32, drop_remainder=True)
 
 data_val = tf.data.Dataset.from_tensor_slices((x_val,y_val))
-data_val = data_val.shuffle(buffer_size=1024).batch(30, drop_remainder=True).repeat()
 
-# nb_batches = tf.data.experimental.cardinality(data_train).numpy()
-# for batch in range(nb_batches):
-#     model.fit(data_train.take(batch), epochs = epoches, validation_data=data_val,
-#               steps_per_epoch=nb_batches)
-model.fit(data_train, epochs = epoches, validation_data=data_val, verbose = 2,
-          steps_per_epoch=1 ,validation_steps=2)
+model.fit(data_train, epochs = epoches, validation_data=data_val)
+
