@@ -8,6 +8,7 @@
 # from keras.models import load_model
 # import keras
 import tensorflow as tf
+import tensorflow_model_optimization
 from IPython import embed
 import numpy as np
 import os 
@@ -61,10 +62,16 @@ model = tf.keras.Sequential([
     tf.keras.layers.Dense(32),              
     tf.keras.layers.Dense(2)  
     ])
+
 model.summary()
 model.compile(optimizer=tf.keras.optimizers.Adam(), loss=['msle'], metrics=['accuracy', is_within_20deg])
 
-quant_aware_model = tensorflow_model_optimization.quantization.keras.quantize_model(model)
+# quant_aware_model = tensorflow_model_optimization.quantization.keras.quantize_model(model)
+# quant_aware_model.compile(optimizer='adam',
+#              loss=['msle'],
+#              metrics=['accuracy', is_within_20deg])
+
+# quant_aware_model.summary()
 
 # train and test datasets
 split_test = 60
@@ -102,18 +109,17 @@ data_train = data_train.shuffle(buffer_size=1024).batch(40, drop_remainder=True)
 data_val = tf.data.Dataset.from_tensor_slices((x_val,y_val))
 data_val = data_val.shuffle(buffer_size=1024).batch(30, drop_remainder=True).repeat()
 
-# nb_batches = tf.data.experimental.cardinality(data_train).numpy()
-# for batch in range(nb_batches):
-#     model.fit(data_train.take(batch), epochs = epoches, validation_data=data_val,
-#               steps_per_epoch=nb_batches)
+
 model.fit(data_train, epochs = epoches, validation_data=data_val, verbose = 2,
           steps_per_epoch=5 ,validation_steps=2)
+# quant_aware_model.fit(data_train, epochs = epoches, validation_data=data_val, verbose = 2,
+#           steps_per_epoch=5 ,validation_steps=2)
+
 
 print("predictions")
-
 sample = os.path.join(feat_dir, "fold1_room1_mix001_ov1.csv")
 x_pred = np.genfromtxt(sample, delimiter=',', skip_header=0, dtype=float)
 x_pred = np.reshape(x_pred, (1, 300,64,4))
 pred = model.predict(x_pred, verbose=2, steps=1)[0]
-dump_file = os.path.join(dump_dir, "fold1_room1_mix001_ov1_pred.csv")
+dump_file = os.path.join(dump_dir, "fold1_room1_mix001_ov1_pred_simp.csv")
 np.savetxt(dump_file, pred, delimiter = ",")  
