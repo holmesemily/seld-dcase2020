@@ -25,7 +25,7 @@ nfft = 2048
 win_len = int(hop_len*fs)*2
 nb_mel_bins = 64
 max_frames = 300
-max_label_frames = 60
+max_label_frames = 600
 
 def preprocess_features():
 # Setting up folders and filenames
@@ -69,19 +69,18 @@ def preprocess_features():
 
 def extract_labels():
     print("Extracting labels")
-    for filename in os.listdir(desc_directory):
-        slabel_mat = np.zeros((max_label_frames, 3))
-        cur_file = os.path.join(desc_directory, filename)
+    for filename in os.listdir(out_directory_label):
+        slabel_mat = np.zeros((max_label_frames, 2))
+        cur_file = os.path.join(out_directory_label, filename)
         desc_l = np.genfromtxt(cur_file, delimiter=',', dtype=int)
         print(filename)
         for index in range(len(desc_l)):         # for every line in input file
             # print("à l'index:", index, "il y a ", desc_l[index, :])
             slabel_mat[desc_l[index, 0], 0] = desc_l[index, 1]
             slabel_mat[desc_l[index, 0], 1] = desc_l[index, 2]
-            slabel_mat[desc_l[index, 0], 2] = desc_l[index, 3]
             # print(slabel_mat[desc_l[index, 0], :])
         print(slabel_mat)
-        np.savetxt(os.path.join(out_directory_label, filename), slabel_mat, delimiter = ",", fmt=int)      
+        np.savetxt(os.path.join(out_directory_label, filename), slabel_mat, delimiter = ",", fmt='%0u')      
         # slabel_mat_df = pd.DataFrame(slabel_mat)
         # slabel_mat_df.to_csv(os.path.join(out_directory_label, filename))
 
@@ -133,6 +132,6 @@ def int_features():
 #     filename_clean = os.path.splitext(filename)[0] + ".csv"
 #     df_feat.to_csv(os.path.join(out_directory, filename_clean))
 
-preprocess_features()
-# extract_labels()
+# preprocess_features()
+extract_labels()
 

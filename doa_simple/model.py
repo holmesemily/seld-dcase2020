@@ -11,13 +11,6 @@ import tensorflow as tf
 from IPython import embed
 import numpy as np
 import os 
-import random
-import cls_feature_class
-import cls_data_generator
-import parameter
-import time
-import evaluation_metrics, SELD_evaluation_metrics
-from collections import deque
 
 # tf.keras.backend.set_image_data_format('channels_first')
 
@@ -71,9 +64,12 @@ model = tf.keras.Sequential([
 model.summary()
 model.compile(optimizer=tf.keras.optimizers.Adam(), loss=['msle'], metrics=['accuracy', is_within_20deg])
 
+quant_aware_model = tensorflow_model_optimization.quantization.keras.quantize_model(model)
+
 # train and test datasets
 split_test = 60
-feat_dir = '../dataset/myfeatures/foa_dev_norm'
+feat_dir = '../dataset/myfeatures/foa_dev'
+feat_dir_norm = '../dataset/myfeatures/foa_dev_norm'
 label_dir = '../dataset/myfeatures/foa_dev_label'
 data_dir = '../dataset/myfeatures/sets'
 dump_dir = '../dataset/myfeatures/dump'
