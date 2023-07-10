@@ -11,7 +11,7 @@ for filename in os.listdir(dir):
     cur_file = os.path.join(dir, filename)
     f = np.genfromtxt(cur_file, delimiter=',', skip_header=0, dtype=float)
     # print(f.shape)
-    if f.shape != (300, 256): 
+    if f.shape != (3000, 256): 
         f = np.delete(f, 0, 1)
         f = np.delete(f, 0, 0)
     # f = np.delete(f, 0, 1)
