@@ -84,10 +84,6 @@ def extract_labels():
         # slabel_mat_df = pd.DataFrame(slabel_mat)
         # slabel_mat_df.to_csv(os.path.join(out_directory_label, filename))
 
-def int_features():
-    feat_dir = '../dataset/myfeatures/foa_dev'
-    for file_cnt, file_name in enumerate(os.listdir(feat_dir)):
-        print("hi")
 
 # print("Generating spectrograms...")
 for filename in os.listdir(directory):
