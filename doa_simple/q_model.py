@@ -3,7 +3,7 @@ import tensorflow as tf
 import os
 
 # Load the TFLite model and allocate tensors.
-interpreter = tf.lite.Interpreter(model_path="model/ptq/test.tflite")
+interpreter = tf.lite.Interpreter(model_path="model/ptq/test_a.tflite")
 interpreter.allocate_tensors()
 
 # Get input and output tensors.
@@ -14,9 +14,9 @@ output_details = interpreter.get_output_details()
 input_shape = input_details[0]['shape']
 print("input:", input_shape)
 
-feat_dir = '../dataset/myfeatures/foa_dev_norm'
+feat_dir = '../dataset/myfeatures/foa_dev'
 sample = os.path.join(feat_dir, "fold1_room1_mix001_ov1.csv")
-x_pred = np.genfromtxt(sample, delimiter=',', skip_header=0, dtype=np.uint8)
+x_pred = np.genfromtxt(sample, delimiter=',', skip_header=0, dtype=np.int8)
 x_pred = np.reshape(x_pred, (10,300,64,4))
 # x_pred = x_pred[:1,:,:,:]
 
@@ -38,7 +38,7 @@ for index in range(10):
 
 final_output = np.reshape(final_output, (600,2))
 dump_dir = '../dataset/myfeatures/dump/'
-dump_file = dump_dir + 'fold1_room1_mix001_ov1_pred_quantlite.csv'
+dump_file = dump_dir + 'fold1_room1_mix001_ov1_pred_12_qmodelonly.csv'
 np.savetxt(dump_file, final_output, delimiter = ",")  
 
 

@@ -86,47 +86,47 @@ def extract_labels():
 
 
 # print("Generating spectrograms...")
-for filename in os.listdir(directory):
-    print(filename)
-    cur_file = os.path.join(directory, filename)
+# for filename in os.listdir(directory):
+#     print(filename)
+#     cur_file = os.path.join(directory, filename)
     
-    # get input audio, make sure its 60*24000 samples
-    sample_freq, mulchannel = wav.read(cur_file) 
+#     # get input audio, make sure its 60*24000 samples
+#     sample_freq, mulchannel = wav.read(cur_file) 
 
-    mulchannel = mulchannel[:, :4] / 32768.0 + eps
-    if mulchannel.shape[0] < 60*fs:
-        zero_pad = np.random.rand(60 - mulchannel.shape[0], mulchannel.shape[1])*eps
-        mulchannel = np.vstack((mulchannel, zero_pad))
-    elif mulchannel.shape[0] > 60*fs:
-        mulchannel = mulchannel[:60, :]
+#     mulchannel = mulchannel[:, :4] / 32768.0 + eps
+#     if mulchannel.shape[0] < 60*fs:
+#         zero_pad = np.random.rand(60 - mulchannel.shape[0], mulchannel.shape[1])*eps
+#         mulchannel = np.vstack((mulchannel, zero_pad))
+#     elif mulchannel.shape[0] > 60*fs:
+#         mulchannel = mulchannel[:60, :]
 
-    # spectrogram for each channel 
-    nb_ch = mulchannel.shape[1]
-    nb_bins = nfft//2
-    spectra = np.zeros((3000, nb_bins + 1, nb_ch), dtype=complex)
-    for ch_cnt in range(nb_ch):
-        stft_ch = librosa.core.stft(np.asfortranarray(mulchannel[:, ch_cnt]), n_fft=nfft, hop_length=int(hop_len*24000),
-                                    win_length=win_len, window='hann')
-        spectra[:, :, ch_cnt] = stft_ch[:, :3000].T
+#     # spectrogram for each channel 
+#     nb_ch = mulchannel.shape[1]
+#     nb_bins = nfft//2
+#     spectra = np.zeros((3000, nb_bins + 1, nb_ch), dtype=complex)
+#     for ch_cnt in range(nb_ch):
+#         stft_ch = librosa.core.stft(np.asfortranarray(mulchannel[:, ch_cnt]), n_fft=nfft, hop_length=int(hop_len*24000),
+#                                     win_length=win_len, window='hann')
+#         spectra[:, :, ch_cnt] = stft_ch[:, :3000].T
 
-    # mel 
-    mel_wts = librosa.filters.mel(sr=fs, n_fft=nfft, n_mels=nb_mel_bins).T
-    mel_feat = np.zeros((spectra.shape[0], nb_mel_bins, spectra.shape[-1]))
+#     # mel 
+#     mel_wts = librosa.filters.mel(sr=fs, n_fft=nfft, n_mels=nb_mel_bins).T
+#     mel_feat = np.zeros((spectra.shape[0], nb_mel_bins, spectra.shape[-1]))
 
-    for ch_cnt in range(spectra.shape[-1]):
-        mag_spectra = np.abs(spectra[:, :, ch_cnt])**2
-        mel_spectra = np.dot(mag_spectra, mel_wts)
-        log_mel_spectra = librosa.power_to_db(mel_spectra)
-        mel_feat[:, :, ch_cnt] = log_mel_spectra
-        # print("mel feat shape", mel_feat.shape)
-        # print(mel_feat[1][0][1], mel_feat[1][1][1], mel_feat[1][2][1])
-    mel_feat = mel_feat.reshape((spectra.shape[0], nb_mel_bins * spectra.shape[-1]))
-    # print("mel feat shape after formatting", mel_feat.shape)
-    # print(mel_feat[1][0], mel_feat[1][1], mel_feat[1][2])
+#     for ch_cnt in range(spectra.shape[-1]):
+#         mag_spectra = np.abs(spectra[:, :, ch_cnt])**2
+#         mel_spectra = np.dot(mag_spectra, mel_wts)
+#         log_mel_spectra = librosa.power_to_db(mel_spectra)
+#         mel_feat[:, :, ch_cnt] = log_mel_spectra
+#         # print("mel feat shape", mel_feat.shape)
+#         # print(mel_feat[1][0][1], mel_feat[1][1][1], mel_feat[1][2][1])
+#     mel_feat = mel_feat.reshape((spectra.shape[0], nb_mel_bins * spectra.shape[-1]))
+#     # print("mel feat shape after formatting", mel_feat.shape)
+#     # print(mel_feat[1][0], mel_feat[1][1], mel_feat[1][2])
 
-    df_feat = pd.DataFrame(mel_feat)
-    filename_clean = os.path.splitext(filename)[0] + ".csv"
-    df_feat.to_csv(os.path.join(out_directory, filename_clean))
+#     df_feat = pd.DataFrame(mel_feat)
+#     filename_clean = os.path.splitext(filename)[0] + ".csv"
+#     df_feat.to_csv(os.path.join(out_directory, filename_clean))
 
 # preprocess_features()
 # extract_labels()
