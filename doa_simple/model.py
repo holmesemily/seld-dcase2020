@@ -21,9 +21,9 @@ MODEL_FIT = 1
 PREDICT = 1
 CONVERT_LITE = 0
 
-NAME = "model_cnn_nq"
-MODEL_FOLDER = 'model/1207/' + NAME
-PREDICT_FOLDER = NAME + "_predict_0.csv"
+NAME = "model_cnn_nq_norm_td"
+MODEL_FOLDER = 'model/1707/' + NAME
+PREDICT_FOLDER = NAME + "_predict_1_b256_tanh_nobm.csv"
 TFLITE_FILE_PATH = MODEL_FOLDER + '/ptq/' + 'lite.tflite'
 
 # compute if prediction is within 20deg of grond truth for all batch
@@ -37,30 +37,35 @@ nb_cnn2d_filt = 64
 model = tf.keras.Sequential([
         tf.keras.layers.InputLayer(input_shape=(300,64,4)),
         tf.keras.layers.Conv2D(filters=nb_cnn2d_filt, kernel_size=(3, 3), padding="same"),                   
-        tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Activation('relu'),
+        # tf.keras.layers.BatchNormalization(),
+        tf.keras.layers.Activation('tanh'),
         tf.keras.layers.MaxPooling2D(pool_size=(5, 4)),
         tf.keras.layers.Dropout(0.1),      
         # bloc
         tf.keras.layers.Conv2D(filters=nb_cnn2d_filt, kernel_size=(3, 3), padding="same"),                   
-        tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Activation('relu'),
+        # tf.keras.layers.BatchNormalization(),
+        tf.keras.layers.Activation('tanh'),
         tf.keras.layers.MaxPooling2D(pool_size=(1, 4)),
         tf.keras.layers.Dropout(0.1),   
         # bloc 
         tf.keras.layers.Conv2D(filters=nb_cnn2d_filt, kernel_size=(3, 3), padding="same"),                   
-        tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Activation('relu'),
+        # tf.keras.layers.BatchNormalization(),
+        tf.keras.layers.Activation('tanh'),
         tf.keras.layers.MaxPooling2D(pool_size=(1, 2)),
         tf.keras.layers.Dropout(0.1),   
-        # fc
+        
+        #rnn
         tf.keras.layers.Reshape((60, 128)),
-        tf.keras.layers.Dense(128),
-        tf.keras.layers.Dropout(0.1),   
-        tf.keras.layers.Dense(128),
+        tf.keras.layers.Bidirectional(tf.keras.layers.GRU(128, activation='tanh', dropout=0.1, recurrent_dropout=0.1,
+                return_sequences=True),merge_mode='mul'),
+        tf.keras.layers.Bidirectional(tf.keras.layers.GRU(128, activation='tanh', dropout=0.1, recurrent_dropout=0.1,
+                return_sequences=True),merge_mode='mul'),
+        
+        # fc
+        tf.keras.layers.TimeDistributed(tf.keras.layers.Dense(128)),
         tf.keras.layers.Dropout(0.1),   
         tf.keras.layers.Dense(2),
-        tf.keras.layers.Activation('sigmoid')
+        tf.keras.layers.Activation('tanh')
         ])
 
 model2 = tf.keras.Sequential([
@@ -74,8 +79,8 @@ model.compile(optimizer=tf.keras.optimizers.Adam(), loss=['msle'], metrics=['acc
 
 # train and test datasets
 feat_dir = '../dataset/myfeatures/foa_dev'
-feat_dir_norm = '../dataset/myfeatures/foa_dev_norm'
-label_dir = '../dataset/myfeatures/foa_dev_label'
+feat_dir_norm = '../dataset/myfeatures/foa_dev_norm2'
+label_dir = '../dataset/myfeatures/foa_dev_label_norm2'
 data_dir = '../dataset/myfeatures/sets'
 dump_dir = '../dataset/myfeatures/dump'
 model_dir = 'model'
@@ -90,8 +95,8 @@ if GENERATE_DATASET:
 
     x_val = np.zeros((60,3000,256))
     y_val = np.zeros((60,600,2))
-    for filecount, filename in enumerate(os.listdir(feat_dir)):
-        cur_file = os.path.join(feat_dir, filename)
+    for filecount, filename in enumerate(os.listdir(feat_dir_norm)):
+        cur_file = os.path.join(feat_dir_norm, filename)
         cur_label = os.path.join(label_dir, filename)
         if filecount < 240:
             x_train[filecount,:,:] = np.genfromtxt(cur_file, delimiter=',')
@@ -110,10 +115,10 @@ if GENERATE_DATASET:
     y_val = np.reshape(y_val, (600,60,2))
 
     data_train = tf.data.Dataset.from_tensor_slices((x_train,y_train))
-    data_train = data_train.shuffle(buffer_size=256).batch(40, drop_remainder=True).repeat()
+    data_train = data_train.shuffle(buffer_size=256).batch(256, drop_remainder=True).repeat()
 
     data_val = tf.data.Dataset.from_tensor_slices((x_val,y_val))
-    data_val = data_val.shuffle(buffer_size=256).batch(30, drop_remainder=True).repeat()
+    data_val = data_val.shuffle(buffer_size=256).batch(256, drop_remainder=True).repeat()
 
     print("Time to generate dataset:", time.time() - start, 's')
     
@@ -141,12 +146,12 @@ if QUANTIZE_IO:
 
 if MODEL_FIT:
     model.fit(data_train, epochs = epoches, validation_data=data_val, verbose = 2,
-            steps_per_epoch=5 ,validation_steps=2)
+            steps_per_epoch=2 ,validation_steps=2)
     model.save(MODEL_FOLDER +'.h5')
 
 if PREDICT:
     print("Predicting...")
-    model = tf.keras.models.load_model(MODEL_FOLDER + '.h5')
+    # model = tf.keras.models.load_model(MODEL_FOLDER + '.h5')
     sample = os.path.join(feat_dir_norm, "fold1_room1_mix001_ov1.csv")
     x_pred = np.genfromtxt(sample, delimiter=',', skip_header=0, dtype=float)
     x_pred = np.reshape(x_pred, (1, 3000,64,4))
