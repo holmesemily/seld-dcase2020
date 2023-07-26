@@ -30,7 +30,7 @@ max_label_frames = 600
 def preprocess_features():
 # Setting up folders and filenames
     feat_dir = '../dataset/myfeatures/foa_dev'
-    feat_dir_norm = '../dataset/myfeatures/foa_dev_norm'
+    feat_dir_norm = '../dataset/myfeatures/foa_dev_norm3'
     normalized_features_wts_file = '../dataset/myfeatures/foa_wts'
     spec_scaler = None
 
@@ -58,8 +58,8 @@ def preprocess_features():
         feat_file = pd.read_csv(os.path.join(feat_dir, file_name), header=None, encoding = "ISO-8859-1")
         feat_file = spec_scaler.transform(feat_file)
         # np.save(
-            # os.path.join(feat_dir_norm, file_name),
-            # feat_file
+        #     os.path.join(feat_dir_norm, file_name),
+        #     feat_file
         # )
         feat_file_df = pd.DataFrame(feat_file)
         feat_file_df.to_csv(os.path.join(feat_dir_norm, file_name), encoding = "ISO-8859-1")
@@ -85,29 +85,31 @@ def extract_labels():
         # slabel_mat_df.to_csv(os.path.join(out_directory_label, filename))
 
 
-# print("Generating spectrograms...")
-# for filename in os.listdir(directory):
-#     print(filename)
-#     cur_file = os.path.join(directory, filename)
+print("Generating spectrograms...")
+for filename in os.listdir(directory):
+    print(filename)
+    cur_file = os.path.join(directory, filename)
     
-#     # get input audio, make sure its 60*24000 samples
-#     sample_freq, mulchannel = wav.read(cur_file) 
+    # get input audio, make sure its 60*24000 samples
+    sample_freq, mulchannel = wav.read(cur_file) 
 
-#     mulchannel = mulchannel[:, :4] / 32768.0 + eps
-#     if mulchannel.shape[0] < 60*fs:
-#         zero_pad = np.random.rand(60 - mulchannel.shape[0], mulchannel.shape[1])*eps
-#         mulchannel = np.vstack((mulchannel, zero_pad))
-#     elif mulchannel.shape[0] > 60*fs:
-#         mulchannel = mulchannel[:60, :]
+    mulchannel = mulchannel[:, :4] / 32768.0 + eps
+    if mulchannel.shape[0] < 60*fs:
+        zero_pad = np.random.rand(60 - mulchannel.shape[0], mulchannel.shape[1])*eps
+        mulchannel = np.vstack((mulchannel, zero_pad))
+    elif mulchannel.shape[0] > 60*fs:
+        mulchannel = mulchannel[:60, :]
 
-#     # spectrogram for each channel 
-#     nb_ch = mulchannel.shape[1]
-#     nb_bins = nfft//2
-#     spectra = np.zeros((3000, nb_bins + 1, nb_ch), dtype=complex)
-#     for ch_cnt in range(nb_ch):
-#         stft_ch = librosa.core.stft(np.asfortranarray(mulchannel[:, ch_cnt]), n_fft=nfft, hop_length=int(hop_len*24000),
-#                                     win_length=win_len, window='hann')
-#         spectra[:, :, ch_cnt] = stft_ch[:, :3000].T
+    # spectrogram for each channel 
+    nb_ch = mulchannel.shape[1]
+    nb_bins = nfft//2
+    spectra = np.zeros((3000, nb_bins + 1, nb_ch), dtype=complex)
+    for ch_cnt in range(nb_ch):
+        print(mulchannel.shape)
+        stft_ch = librosa.core.stft(np.asfortranarray(mulchannel[:, ch_cnt]), n_fft=nfft, hop_length=int(hop_len*24000),
+                                    win_length=win_len, window='hann')
+        print(stft_ch.shape)
+        spectra[:, :, ch_cnt] = stft_ch[:, :3000].T
 
 #     # mel 
 #     mel_wts = librosa.filters.mel(sr=fs, n_fft=nfft, n_mels=nb_mel_bins).T
